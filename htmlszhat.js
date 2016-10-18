@@ -48,7 +48,7 @@ function filterFrequency(frequency){
 	return frequency;
 }
 
-var legalCharacters='qwertyuiopasdfghjklzxcvbnm';
+var legalCharacters='qwertyuiopasdfghjklzxcvbnm';//+'ёйцукенгшщзхъфывапролджэячсмитьбю';//Так только хуже
 legalCharacters+=legalCharacters.toUpperCase()+'1234567890_';
 legalCharacters=legalCharacters.split('');
 
@@ -144,8 +144,8 @@ function buildTagsAttrTable($){
 		}
 		// Оборачиваем в массив - с первого элемента пойдут атрибуты
 		attrTable[tag] = [];
-		console.log(tag);
-		console.log(attrFreq);
+		//console.log(tag);
+		//console.log(attrFreq);
 		for(var attr in attrFreq){
 			if(attrFreq[attr]>totalTagsCount/3){ // Грубо
 				attrTable[tag].push(attr);
@@ -172,13 +172,38 @@ function applyTagsTables($,replTable,attrTable){
 	}
 }
 
+
+function joinTagsTables(tagsReplacementTable, tagsAttrTable){
+	var rez="";
+	for(var tag in tagsReplacementTable){
+		rez+=" "+tagsReplacementTable[tag]+"="+tag+":"+tagsAttrTable[tag].join(" ");
+	}
+	return "<z>"+rez.trim()+"</z>";
+}
+
+
+function isComment(index, node) {
+  return node.type === 'comment'
+}
+
+function removeComments($){
+	$('*').contents().filter(isComment).remove();
+}
+
+
 function szhat(html){
 //	var $ = cheerio.load('<h2 title="title">Hello world</h2>');
 	var $ = cheerio.load(html,{decodeEntities: false});
 
+
+	// Предвариательная подготовка
+
+	// Удаляем комментарии
+//	removeComments($);
+
 	// Получаем отсортированный по частоте массив символов - алгоритм Хаффмана спасибо скажет
 	var sortedChars = getSortedCharacters(html);
-	console.log(sortedChars);
+	//console.log(sortedChars);
 
 	// Этап первый - замена атрибутов и тэгов на более короткие
 
@@ -198,16 +223,18 @@ function szhat(html){
 	//console.log(filterFrequency(getAttrFrequency($)));
 	//console.log(getCharactersFrequence(html));
 
-	console.log(filterFrequency(getTagsFrequency($)));
+	//console.log(filterFrequency(getTagsFrequency($)));
 
 	var tagsAttrTable = buildTagsAttrTable($);
 	var tagsReplacementTable = buildReplacementTable(filterFrequency(getTagsFrequency($)),sortedChars);
 	applyTagsTables($,tagsReplacementTable,tagsAttrTable);
 
 	console.log(tagsReplacementTable);
+	console.log(tagsAttrTable);
 
+	console.log(joinTagsTables(tagsReplacementTable, tagsAttrTable));
 //	console.log($('*'));
-	return attrTableSerialized+$.html();
+	return joinTagsTables(tagsReplacementTable, tagsAttrTable)+attrTableSerialized+$.html();
 }
 
 
