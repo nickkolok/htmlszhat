@@ -161,13 +161,13 @@ function applyTagsTables($,replTable,attrTable){
 		for(var i = 0; i < tagsArray.length; i++){
 			var tag = tagsArray[i];
 			tag.name = replTable[tag.name];
-/*
+
 			for(var j=0; j<attrTable[tagname].length; j++){
 				var val = (tag.attribs[attrTable[tagname][j]] || "");
 				tag.name += '"'+val;
 				delete tag.attribs[attrTable[tagname][j]];
 			}
-*/
+
 		}
 	}
 }
@@ -192,10 +192,23 @@ function removeComments($){
 
 
 function szhat(html){
-//	var $ = cheerio.load('<h2 title="title">Hello world</h2>');
+	//var $ = cheerio.load('<h2 title="title" 1+=" something">Hello world</h2>');
+	//console.log($('h2'));
 	var $ = cheerio.load(html,{decodeEntities: false});
 
+	var tags = filterFrequency(getTagsFrequency($));
+	for(var tag in tags){
+		console.log('Оптимизируется расположение атрибутов у тэгов <'+tag+'>');
+//		optimizeAttrValueOrder($(tag),0);
+		optimizeAttrOrder($(tag),0);
+	}
 
+
+//	console.log(getMostPopularAttrValue($('a')));
+//	console.log(getMostPopularAttrValue($('link')));
+//	console.log(getMostPopularAttrValue($('script')));
+
+/*
 	// Предвариательная подготовка
 
 	// Удаляем комментарии
@@ -212,7 +225,7 @@ function szhat(html){
 	// Строим таблицу замены атрибутов
 	var attrReplacementTable = buildReplacementTable(filterFrequency(getAttrFrequency($)),sortedChars);
 	// Применяем её к объекту документа
-	applyAttrReplacementTable(attrReplacementTable,$);
+//	applyAttrReplacementTable(attrReplacementTable,$);
 	// Сериализация таблицы замены атрибутов
 	var attrTableSerialized = serializeAttrTable(attrReplacementTable);
 
@@ -234,11 +247,148 @@ function szhat(html){
 
 	console.log(joinTagsTables(tagsReplacementTable, tagsAttrTable));
 //	console.log($('*'));
-	return joinTagsTables(tagsReplacementTable, tagsAttrTable)+attrTableSerialized+$.html();
+	return joinTagsTables(tagsReplacementTable, tagsAttrTable)+/*attrTableSerialized+*/$.html();
+	return $.html();
 }
 
 
 
+
+
+function movePropToEnd(obj,prop){
+	var val = obj[prop];
+	delete obj[prop];
+	obj[prop] = val;
+}
+
+
+function movePropToIndex(obj,prop,index){
+	var i = 0;
+	for(var exprop in obj){
+		if(i < index){
+			i++;
+			continue;
+		}
+		if(prop === exprop){
+			break;
+		}
+		movePropToEnd(obj,exprop);
+	}
+}
+
+function getFirstProp(obj){
+	for(var prop in obj){
+		return prop;
+	}
+}
+
+function getMaxProp(obj){
+	var maxprop = getFirstProp(obj);
+	for(var prop in obj){
+		if(obj[prop]>obj[maxprop] || obj[prop]==obj[maxprop] && (prop.length > maxprop.length)){
+			maxprop = prop;
+		}
+	}
+	return maxprop;
+}
+
+function getMostPopularAttrValue(tags,placed){
+	var freqs={};
+	for(var i=0; i<tags.length; i++){
+		var j=0;
+		for(var attr in tags[i].attribs){
+			if(j<placed){
+				j++;
+				continue;
+			}
+			safeinc(freqs,attr+'="'+tags[i].attribs[attr]+'"');
+		}
+	}
+	var maxprop = getMaxProp(freqs);
+	return freqs[maxprop] > 1 ? maxprop : null;
+}
+
+
+function getMostPopularAttr(tags,placed){
+	var freqs={};
+	for(var i=0; i<tags.length; i++){
+		var j=0;
+		for(var attr in tags[i].attribs){
+			if(j<placed){
+				j++;
+				continue;
+			}
+			safeinc(freqs,attr);
+		}
+	}
+	var maxprop = getMaxProp(freqs);
+	return freqs[maxprop] > 1 ? maxprop : null;
+}
+
+
+
+function optimizeAttrOrder(tags,placed){
+	var maxprop = getMostPopularAttr(tags,placed);
+	if(!maxprop){
+		return;
+	}
+	var touchedTags=[], untouchedTags=[];
+	for(var i=0; i<tags.length; i++){
+		if(maxprop in tags[i].attribs){
+			movePropToIndex(tags[i].attribs,maxprop,placed);
+			touchedTags.push(tags[i]);
+		} else {
+			untouchedTags.push(tags[i]);
+		}
+	}
+	optimizeAttrOrder(touchedTags,placed+1);
+	optimizeAttrOrder(untouchedTags,placed);
+}
+
+
+function logTag(tag){
+	var rez = '<'+tag.name;
+	for(var attr in tag.attribs){
+		rez += ' '+attr+'="'+tag.attribs[attr]+'"';
+	}
+	console.log(rez+'>');
+}
+
+
+function logTagsArray(tags){
+	for(var i=0; i<tags.length; i++){
+		logTag(tags[i]);
+	}
+}
+
+
+function optimizeAttrValueOrder(tags,placed){
+	logTagsArray(tags);
+	if(tags.length == 1){
+		console.log('Единственный тэг, пропускается');
+		return;
+	}
+	var maxprop = getMostPopularAttrValue(tags,placed);
+	if(!maxprop){
+		optimizeAttrOrder(tags,placed);
+		return;
+	}
+	console.log('Наиболее частотная пара атрибут-значение: '+maxprop)
+	var etalAttr = maxprop.split('="')[0];
+	var etalValue = maxprop.split('="')[1].split(/"$/)[0];
+	console.log(etalAttr,etalValue);
+	var touchedTags=[], untouchedTags=[];
+	for(var i=0; i<tags.length; i++){
+		if(tags[i].attribs[etalAttr] === etalValue){
+			movePropToIndex(tags[i].attribs,etalAttr,placed);
+			touchedTags.push(tags[i]);
+		} else {
+			untouchedTags.push(tags[i]);
+		}
+	}
+	optimizeAttrValueOrder(touchedTags,placed+1);
+	optimizeAttrValueOrder(untouchedTags,placed);
+}
 
 
 
@@ -246,4 +396,9 @@ function szhat(html){
 fs.writeFileSync(
 	filename+'.htmlszhat',
 	szhat(fs.readFileSync(filename,'utf-8'))
+);
+
+fs.writeFileSync(
+	filename+'.htmlorig',
+	cheerio.load(fs.readFileSync(filename,'utf-8'),{decodeEntities: false}).html()
 );
