@@ -191,9 +191,85 @@ function removeComments($){
 }
 
 
+function getClassFrequency(tags,placed){
+	var freq = {};
+	for(var i=0; i<tags.length; i++){
+		if(!(tags[i].attribs['class'])){
+			continue;
+		}
+		var classes = tags[i].attribs['class'].split(' ');
+		for(var j=placed; classes && j < classes.length; j++){
+			safeinc(freq,classes[j]);
+		}
+	}
+	return freq;
+}
+
+function classToPosition(tag,className,position){
+	var classArray = tag.attribs['class'].split(' ');
+	for(var i=0; i<classArray.length; i++){
+		if(classArray[i]===className){
+			classArray.splice(i,1);
+			break;
+		}
+	}
+	classArray.splice(position,0,className);
+	tag.attribs['class'] = classArray.join(' ');
+}
+
+function hasClass(tag,className){
+	if(!(tag.attribs['class'])){
+		return false;
+	}
+	var classArray = tag.attribs['class'].split(' ');
+	for(var i=0; i<classArray.length; i++){
+		if(classArray[i]===className){
+			return true;
+		}
+	}
+	return false;
+}
+
+function filterTagsWithTooFewClasses(tags,count){
+	var goodTags=[];
+	for(var i=0; i<tags.length; i++){
+		if(!(tags[i].attribs['class'])){
+			continue;
+		}
+		if(tags[i].attribs['class'].split(' ').length>count){
+			goodTags.push(tags[i]);
+		}
+	}
+	return goodTags;
+}
+
+function optimizeClassOrder(tags,placed){
+	tags = filterTagsWithTooFewClasses(tags,placed);
+	if(tags.length < 2){
+		return;
+	}
+	var freq = getClassFrequency(tags,placed);
+	var maxclass = getMaxProp(freq);
+	console.log('Наиболее частотный класс в блоке: '+maxclass)
+	var touchedTags=[], untouchedTags=[];
+	for(var i=0; i<tags.length; i++){
+		if(hasClass(tags[i],maxclass)){
+			classToPosition(tags[i],maxclass,placed);
+			touchedTags.push(tags[i]);
+		} else {
+			untouchedTags.push(tags[i]);
+		}
+	}
+//	if(placed < 100){
+		optimizeClassOrder(untouchedTags,placed);
+		optimizeClassOrder(touchedTags,placed+1);
+//	}
+}
+
+
 function szhat(html){
-	//var $ = cheerio.load('<h2 title="title" 1+=" something">Hello world</h2>');
-	//console.log($('h2'));
+//	var $ = cheerio.load('<h2 title+alt="title"" something">Hello world</h2>');
+//	console.log($('h2'));
 	var $ = cheerio.load(html,{decodeEntities: false});
 
 	var tags = filterFrequency(getTagsFrequency($));
@@ -202,6 +278,8 @@ function szhat(html){
 //		optimizeAttrValueOrder($(tag),0);
 		optimizeAttrOrder($(tag),0);
 	}
+	console.log('Оптимизируется перестановка классов...');
+	optimizeClassOrder($('*'),0);
 
 
 //	console.log(getMostPopularAttrValue($('a')));
@@ -332,10 +410,19 @@ function optimizeAttrOrder(tags,placed){
 	if(!maxprop){
 		return;
 	}
+	console.log('Изучается блок:');
+	logTagsArray(tags);
+	console.log('Уже отсортировано атрибутов: '+placed);
+	console.log('Наиболее частотный атрибут в блоке: '+maxprop)
+
 	var touchedTags=[], untouchedTags=[];
 	for(var i=0; i<tags.length; i++){
 		if(maxprop in tags[i].attribs){
+			console.log('Было:');
+			logTag(tags[i]);
 			movePropToIndex(tags[i].attribs,maxprop,placed);
+			console.log('Стало:');
+			logTag(tags[i]);
 			touchedTags.push(tags[i]);
 		} else {
 			untouchedTags.push(tags[i]);
