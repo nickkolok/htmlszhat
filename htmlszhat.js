@@ -16,9 +16,7 @@ function getTagsFrequency($){
 	// Возвращает список тэгов с количеством употреблений каждого из них
 	var allTags = $('*');
 	var frequency = {};
-//	console.log(allTags.length);
 	for(var i = 0; i < allTags.length; i++){
-//		console.log(allTags[i]);
 		safeinc(frequency,allTags[i].name)
 	}
 	return frequency;
