@@ -15,7 +15,7 @@ do
 
 done;
 
-ls -l
+ls -l | awk {'print $5"\t\t"$9'}
 
 echo "Файлов: " `ls -1 *.gz.htmlorig  | wc -l`
 echo ""
