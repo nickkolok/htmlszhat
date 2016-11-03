@@ -48,23 +48,6 @@ function filterFrequency(frequency){
 	return frequency;
 }
 
-var legalCharacters='qwertyuiopasdfghjklzxcvbnm';//+'ёйцукенгшщзхъфывапролджэячсмитьбю';//Так только хуже
-legalCharacters+=legalCharacters.toUpperCase()+'1234567890_';
-legalCharacters=legalCharacters.split('');
-
-function getCharactersFrequence(html){
-	var freq = {};
-	for(var i = 0; i < legalCharacters.length; i++){
-		freq[legalCharacters[i]]=0;
-		var matches = html.match(new RegExp(legalCharacters[i],'g'));
-		if(matches){
-			freq[legalCharacters[i]]=matches.length;
-		}
-	}
-	return(freq);
-}
-
-
 function sortArrayByFrequence(chars,freq){
 
 	chars.sort(function(a,b){
