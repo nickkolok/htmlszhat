@@ -3,26 +3,12 @@ var cheerio = require('cheerio');
 
 var filename = process.argv[2];
 
-
 function safeinc(obj,key){
 	if(obj[key]){
 		obj[key]++;
 	} else {
 		obj[key] = 1;
 	}
-}
-
-
-function getAttrFrequency($){
-	// Возвращает список атрибутов с количеством употреблений каждого из них
-	var allTags = $('*');
-	var attrFrequency = {};
-	for(var i = 0; i < allTags.length; i++){
-		for(var attr in allTags[i].attribs){
-			safeinc(attrFrequency,attr);
-		}
-	}
-	return attrFrequency;
 }
 
 
@@ -38,7 +24,6 @@ function getTagsFrequency($){
 	return frequency;
 }
 
-
 function filterFrequency(frequency){
 	for(var attr in frequency){
 		if(frequency[attr] === 1){
@@ -47,26 +32,6 @@ function filterFrequency(frequency){
 	}
 	return frequency;
 }
-
-function sortArrayByFrequence(chars,freq){
-
-	chars.sort(function(a,b){
-		return freq[b]-freq[a];
-	});
-	while(!freq[chars[chars.length-1]]){
-		chars.length--;
-	}
-	return chars;
-
-}
-
-
-
-
-
-
-
-
 
 function getClassFrequency(tags,placed){
 	var freq = {};
@@ -155,10 +120,6 @@ function szhat(html){
 
 	return $.html();
 }
-
-
-
-
 
 function movePropToEnd(obj,prop){
 	var val = obj[prop];
@@ -303,7 +264,6 @@ function optimizeAttrValueOrder(tags,placed){
 	optimizeAttrValueOrder(touchedTags,placed+1);
 	optimizeAttrValueOrder(untouchedTags,placed);
 }
-
 
 
 
